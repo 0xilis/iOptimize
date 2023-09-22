@@ -40,21 +40,89 @@ __attribute__((always_inline)) static void do_the_magic(void) {
  uintptr_t pageStart = start & -pageSize;
  mprotect((void *)pageStart, end - pageStart, PROT_READ | PROT_WRITE | PROT_EXEC);
  /* made page writable */
- /* now, modify code... (currently using ez method, improve this later to save 1 cycle/instruction via nop-less method) */
- long long originalCbzInstruction = 0x400000B4; /* cbz x0, loc_3fb0 */
+ /* now, modify code... (improve this later to be more dynamic rather than manually patching instructions, ex look at the top two instructions and calculate the change rather than hardcoding, would be more future-proof, but this should suffice for now) */
+ /*
+ Original code:
+cbz x0, #0x18 ; C0 00 00 B4
+cbz x1, #0x18 ; A1 00 00 B4
+ldr x8, [x0] ; 08 00 40 F9
+and x0, x8, #0x7ffffffffffff8 ; 00 CD 7D 92
+cbz x0, loc_3fb0 ; 40 00 00 B4
+b __class_getVariable ; F9 44 00 14
+mov x0, #0x0 ; 00 00 80 D2
+ret ; C0 03 5F D6
+
+  New code:
+cbz x0, #0x14 ; A0 00 00 B4
+cbz x1, #0x14 ; 81 00 00 B4
+ldr x8, [x0] ; 08 00 40 F9
+and x0, x8, #0x7ffffffffffff8 ; 00 CD 7D 92
+cbnz x0, __class_getVariable ; 40 9F 08 B5
+mov x0, #0x0 ; 00 00 80 D2
+ret ; C0 03 5F D6
+ret ; C0 03 5F D6
+
+this saves us a branch in some scenarios
+
+(we don't need the last ret but we need to ensure every function we modify is the same size so nothing breaks)
+  */
+ /* TODO: There's probably a more elegant way to do this than to just put a lot of if statements to make sure instructions are exactly the same */
  long long *ptrToInst = origFuncPtr;
- /* TODO: Add safety check here so if we can't find the instruction, this won't loop infinitely. */
- while (*ptrToInst != originalCbzInstruction) {
+ if (*ptrToInst == 0xC00000B4) {
   ptrToInst++;
+  if (*ptrToInst == 0xA10000B4) {
+   ptrToInst++;
+   if (*ptrToInst == 0x080040F9) {
+    ptrToInst++;
+    if (*ptrToInst == 0x00CD7D92) {
+     ptrToInst++;
+     if (*ptrToInst == 0x400000B4) {
+      ptrToInst++;
+      if (*ptrToInst == 0xF9440014) {
+       ptrToInst++;
+       if (*ptrToInst == 0x000080D2) {
+        ptrToInst++;
+        if (*ptrToInst == 0xC0035FD6) {
+         /* go back to beginning, and start patching */
+         ptrToInst = origFuncPtr;
+         /* cbz x0, #0x14 */
+         *ptrToInst = 0xA00000B4;
+         ptrToInst++;
+         /* cbz x1, #0x14 */
+         *ptrToInst = 0x810000B4;
+         ptrToInst++;
+         /* ldr x8, [x0] */
+         /* *ptrToInst = 0x080040F9; is already this instruction, no need to modify */
+         ptrToInst++;
+         /* and x0, x8, #0x7ffffffffffff8 */
+         /* *ptrToInst = 0x00CD7D92; is already this instruction, no need to modify */
+         ptrToInst++;
+         /* cbnz x0, __class_getVariable */
+         *ptrToInst = 0x409F08B5;
+         ptrToInst++;
+         /* mov x0, #0x0 */
+         *ptrToInst = 0x000080D2;
+         ptrToInst++;
+         /* ret */
+         *ptrToInst = 0xC0035FD6;
+         /* no need to modify last ret since we should never reach it */
+         /* class_getClassVariable patch done */
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ } else if (*ptrToInst == 0xA00000B4) {
+  printf("libobjc's class_getClassVariable has already been patched by iOptimize.\n");
  }
- *ptrToInst = 0x409F08B5; /* cbnz x0, __class_getVariable */
- ptrToInst++;
- *ptrToInst = 0x1F2003D5; /* nop */
 }
 
 #ifdef COMPILE_AS_CLI
 int main(void) {
  printf("iOptimize: Start applying optimizations...\n");
+ /* TODO: may be good idea for the binary to have args, ex something like -optimize to optimize and -revert to revert optimizations if they were applied */
  do_the_magic();
  printf("iOptimize: finish\n");
  return 0;
