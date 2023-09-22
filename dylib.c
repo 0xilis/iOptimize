@@ -295,6 +295,84 @@ this saves us a branch in some scenarios
  } else {
   printf("objc_msgSend_uncached appears to be changed, iOptimize did not optimize\n");
  }
+
+ /* objc_msgLookup_uncached patch */
+ /* same as objc_msgSend_uncached patch. save a mov. */
+ origFuncPtr = dlsym(mainProgramHandle, "objc_msgLookup_uncached");
+ if (!origFuncPtr) {
+  fprintf(stderr, "dlsym %s failed\n", dlerror());
+  return;
+ }
+ instruction64 origCode_objc_msgLookup_uncached[30] = {
+  0xFD7BBFA9,
+  0xFD030091,
+  0xFF4303D1,
+  0xE00700AD,
+  0xE20F01AD,
+  0xE41702AD,
+  0xE61F03AD,
+  0xE00708A9,
+  0xE20F09A9,
+  0xE4170AA9,
+  0xE61F0BA9,
+  0xE83F0CA9,
+  0xF0030FAA,
+  0xE20310AA,
+  0x630080D2,
+  0xCD4A0094,
+  0xF10300AA,
+  0xE00740AD,
+  0xE20F41AD,
+  0xE41742AD,
+  0xE61F43AD,
+  0xE00748A9,
+  0xE20F49A9,
+  0xE4174AA9,
+  0xE61F4BA9,
+  0xE8434CA9,
+  0x10027FB2,
+  0xBF030091,
+  0xFD7BC1A8,
+  0xC0035FD6
+ };
+ instruction64 newCode_objc_msgLookup_uncached[29] = {
+  0xFD7BBFA9,
+  0xFD030091,
+  0xFF4303D1,
+  0xE00700AD,
+  0xE20F01AD,
+  0xE41702AD,
+  0xE61F03AD,
+  0xE00708A9,
+  0xE20F09A9,
+  0xE4170AA9,
+  0xE61F0BA9,
+  0xE83F0CA9,
+  0xE2030FAA,
+  0x630080D2,
+  0xCD4A0094,
+  0xF10300AA,
+  0xE00740AD,
+  0xE20F41AD,
+  0xE41742AD,
+  0xE61F43AD,
+  0xE00748A9,
+  0xE20F49A9,
+  0xE4174AA9,
+  0xE61F4BA9,
+  0xE8434CA9,
+  0x10027FB2,
+  0xBF030091,
+  0xFD7BC1A8,
+  0xC0035FD6
+ };
+ if (instEqual(origCode_objc_msgLookup_uncached, 30, origFuncPtr)) {
+  applyPatch(newCode_objc_msgLookup_uncached, 29, origFuncPtr);
+ } else if (instEqual(newCode_objc_msgLookup_uncached, 29, origFuncPtr)) {
+  printf("libobjc's objc_msgLookup_uncached has already been patched by iOptimize.\n");
+ } else {
+  printf("objc_msgLookup_uncached appears to be changed, iOptimize did not optimize\n");
+ }
 }
 
 #ifdef COMPILE_AS_CLI
