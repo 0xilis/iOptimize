@@ -22,6 +22,26 @@ clang -D COMPILE_AS_CLI dylib.c -o ioptimize
 #include <sys/mman.h>
 #include <unistd.h>
 
+typedef instruction64 long; /* an arm64 intruction takes up 32 bits */
+
+int instEqual(instruction64 *ins, unsigned int insCount, instruction64 *start) {
+ instruction64 *ptrToInst = start;
+ for (int i = 0; i < insCount; i++) {
+  if (*ptrToInst != ins[i]) {
+   return 0;
+  }
+  ptrToInst++;
+ }
+ return 1;
+}
+
+void applyPatch(instruction64 *ins, unsigned int insCount, instruction64 *start) {
+ instruction64 *ptrToInst = start;
+ for (int i = 0; i < insCount; i++) {
+  *ptrToInst = ins[i];
+ }
+}
+
 __attribute__((always_inline)) static void do_the_magic(void) {
  /* code was re-used from my internal hooking library libsubsidiary, which was helped via https://tfin.ch/blog/HookingCFunctionsAtRuntime.html */
  void *mainProgramHandle = dlopen("/usr/lib/libobjc.A.dylib", RTLD_NOW);
@@ -66,97 +86,91 @@ this saves us a branch in some scenarios
 
 (we don't need the last ret but we need to ensure every function we modify is the same size so nothing breaks)
   */
- /* TODO: There's probably a more elegant way to do this than to just put a lot of if statements to make sure instructions are exactly the same */
- long long *ptrToInst = origFuncPtr;
- if (*ptrToInst == 0xC00000B4) {
-  ptrToInst++;
-  if (*ptrToInst == 0xA10000B4) {
-   ptrToInst++;
-   if (*ptrToInst == 0x080040F9) {
-    ptrToInst++;
-    if (*ptrToInst == 0x00CD7D92) {
-     ptrToInst++;
-     if (*ptrToInst == 0x400000B4) {
-      ptrToInst++;
-      if (*ptrToInst == 0xF9440014) {
-       ptrToInst++;
-       if (*ptrToInst == 0x000080D2) {
-        ptrToInst++;
-        if (*ptrToInst == 0xC0035FD6) {
-         /* go back to beginning, and start patching */
-         ptrToInst = origFuncPtr;
-         /* cbz x0, #0x14 */
-         *ptrToInst = 0xA00000B4;
-         ptrToInst++;
-         /* cbz x1, #0x14 */
-         *ptrToInst = 0x810000B4;
-         ptrToInst++;
-         /* ldr x8, [x0] */
-         /* *ptrToInst = 0x080040F9; is already this instruction, no need to modify */
-         ptrToInst++;
-         /* and x0, x8, #0x7ffffffffffff8 */
-         /* *ptrToInst = 0x00CD7D92; is already this instruction, no need to modify */
-         ptrToInst++;
-         /* cbnz x0, __class_getVariable */
-         *ptrToInst = 0x409F08B5;
-         ptrToInst++;
-         /* mov x0, #0x0 */
-         *ptrToInst = 0x000080D2;
-         ptrToInst++;
-         /* ret */
-         *ptrToInst = 0xC0035FD6;
-         /* no need to modify last ret since we should never reach it */
-         /* class_getClassVariable patch done */
-        }
-       }
-      }
-     }
-    }
-   }
-  }
- } else if (*ptrToInst == 0xA00000B4) {
+ instruction64 origCode_class_getClassVariable[8] = {
+  0xC00000B4,
+  0xA10000B4,
+  0x080040F9,
+  0x00CD7D92,
+  0x400000B4,
+  0xF9440014,
+  0x000080D2,
+  0xC0035FD6
+ };
+ instruction64 newCode_class_getClassVariable[7] = {
+  0xA00000B4,
+  0x810000B4,
+  0x080040F9,
+  0x00CD7D92,
+  0x409F08B5,
+  0x000080D2,
+  0xC0035FD6
+ };
+ if (instEqual(origCode_class_getClassVariable, 8, origFuncPtr)) {
+  applyPatch(newCode_class_getClassVariable, 7, origFuncPtr);
+ } else if (instEqual(newCode_class_getClassVariable, 7, origFuncPtr)) {
   printf("libobjc's class_getClassVariable has already been patched by iOptimize.\n");
+ } else {
+  printf("class_getClassVariable appears to be changed, iOptimize did not optimize\n");
  }
 
- /* lookUpImpOrForward patch */
- /*
- lookUpImpOrForward patch is much more impactful than previous patch. For one, we're saving 2 branches plus some more instructions.
- But also lookUpImpOrForward is used a lot more than class_getClassVariable, ex:
- - objc_msgSend_uncached uses it (and any optimization, even micro to objc_msgSend is a godsend)
- - objc_msgLookup_uncached
- - object_getMethodImplementation (in some scenarios)
- - class_getMethodImplementation (in some scenarios)
- - class_respondsToSelector_init (in some scenarios)
- - class_lookupMethod (in some scenarios)
- - class_getInstanceMethod (in some scenarios)
- - some resolve Objective-C++ functions
-
- While diffing libobjc on iOS 10.3 and 15.2, I realized that 15.2 now uses the method_t::getImp function.
- One thing to keep in mind is that if x0 is not 0, then the old code will always be executed
- lookUpImpOrForward uses this function in a scenario in which it will never be 0 (it already checks) so we can just replace this with the old code
- This way, we save some instructions, including 2 branches.
-
- NEVERMIND...
- i messed up
- lol
- forget about this
-  */
-
- /*
-Orig code:
-
-New code:
-*/
-
-  /* objc_msgSend patch */
-  origFuncPtr = dlsym(mainProgramHandle, "objc_msgSend");
-  if (!origFuncPtr) {
-   fprintf(stderr, "dlsym %s failed\n", dlerror());
-   return;
-  }
-  ptrToInst = origFuncPtr;
-  /*if (*ptrToInst == ) {
-  }*/
+ /* objc_msgSend patch */
+ /* saves a mov when we need to objc_msgSend_uncached */
+ origFuncPtr = dlsym(mainProgramHandle, "objc_msgSend");
+ if (!origFuncPtr) {
+  fprintf(stderr, "dlsym %s failed\n", dlerror());
+  return;
+ }
+ instruction64 origCode_objc_msgSend[42] = {
+  0x1F0000F1,
+  0x4D030054,
+  0x0D0040F9,
+  0xB0CD7D92, /* x15 version is AF CD 7D 92 */
+  0xEF0310AA, /* this is the mov x15, x16 (mov x16, x15 is F0 03 0F AA) */
+  0x0A0A40F9, /* x15 version is EA 09 40 F9 */
+  0x4BFD70D3,
+  0x4ABD4092,
+  0x2C000B0A,
+  0x4D110C8B,
+  0xB125FFA8,
+  0x3F0101EB,
+  0x61000054,
+  0x310210CA, /* eor */
+  0x20021FD6,
+  0x291300B4,
+  0xBF010AEB,
+  0x22FFFF54,
+  0x4D512B8B,
+  0x4C110C8B,
+  0xB125FFA8,
+  0x3F0101EB,
+  0xE0FEFF54,
+  0x3F0100F1,
+  0xA0114CFA,
+  0x68FFFF54,
+  0x8E000014,
+  0x20010054,
+  0x0A084092,
+  0x0BFC7793,
+  0x5F1D00F1,
+  0x6C018A9A,
+  0xCA010090,
+  0x4A412F91,
+  0x50796CF8, /* x15 version is 4F 79 6C F8 */
+  0xE1FFFF17,
+  0x010080D2,
+  0x00E4002F,
+  0x01E4002F,
+  0x02E4002F,
+  0x03E4002F,
+  0xC0035FD6
+ };
+ if (instEqual(origCode_objc_msgSend, 42, origFuncPtr)) {
+  /* applyPatch(newCode_objc_msgSend, 42, origFuncPtr); */
+ /*} else if (instEqual(newCode_objc_msgSend, 7, origFuncPtr)) {
+  printf("libobjc's objc_msgSend has already been patched by iOptimize.\n");*/
+ } else {
+  printf("objc_msgSend appears to be changed, iOptimize did not optimize\n");
+ }
 }
 
 #ifdef COMPILE_AS_CLI
