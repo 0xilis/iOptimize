@@ -114,6 +114,7 @@ this saves us a branch in some scenarios
  }
 
  /* objc_msgSend patch */
+ /* similar patch can be applied to objc_msgLookup and objc_msgSendSuper */
  /* saves a mov when we need to objc_msgSend_uncached */
  origFuncPtr = dlsym(mainProgramHandle, "objc_msgSend");
  if (!origFuncPtr) {
