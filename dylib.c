@@ -117,6 +117,31 @@ this saves us a branch in some scenarios
  } else if (*ptrToInst == 0xA00000B4) {
   printf("libobjc's class_getClassVariable has already been patched by iOptimize.\n");
  }
+
+ /* lookUpImpOrForward patch */
+ /*
+ lookUpImpOrForward patch is much more impactful than previous patch. For one, we're saving 2 branches plus some more instructions.
+ But also lookUpImpOrForward is used a lot more than class_getClassVariable, ex:
+ - objc_msgSend_uncached uses it (and any optimization, even micro to objc_msgSend is a godsend)
+ - objc_msgLookup_uncached
+ - object_getMethodImplementation (in some scenarios)
+ - class_getMethodImplementation (in some scenarios)
+ - class_respondsToSelector_init (in some scenarios)
+ - class_lookupMethod (in some scenarios)
+ - class_getInstanceMethod (in some scenarios)
+ - some resolve Objective-C++ functions
+
+ While diffing libobjc on iOS 10.3 and 15.2, I realized that 15.2 now uses the method_t::getImp function.
+ One thing to keep in mind is that if x0 is not 0, then the old code will always be executed
+ lookUpImpOrForward uses this function in a scenario in which it will never be 0 (it already checks) so we can just replace this with the old code
+ This way, we save some instructions, including 2 branches.
+
+ NEVERMIND...
+ i messed up
+ lol
+ forget about this
+  */
+
 }
 
 #ifdef COMPILE_AS_CLI
