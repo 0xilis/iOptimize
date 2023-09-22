@@ -142,6 +142,21 @@ this saves us a branch in some scenarios
  forget about this
   */
 
+ /*
+Orig code:
+
+New code:
+*/
+
+  /* objc_msgSend patch */
+  origFuncPtr = dlsym(mainProgramHandle, "objc_msgSend");
+  if (!origFuncPtr) {
+   fprintf(stderr, "dlsym %s failed\n", dlerror());
+   return;
+  }
+  ptrToInst = origFuncPtr;
+  /*if (*ptrToInst == ) {
+  }*/
 }
 
 #ifdef COMPILE_AS_CLI
