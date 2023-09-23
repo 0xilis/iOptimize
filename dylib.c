@@ -441,82 +441,82 @@ this saves us a branch in some scenarios
   0x000080D2,
   0xC0035FD6
  };
-}
-if (instEqual(origCode_cache_getImp, 28, origFuncPtr)) {
- applyPatch(newCode_cache_getImp, 27, origFuncPtr);
-} else if (instEqual(newCode_cache_getImp, 27, origFuncPtr)) {
- printf("libobjc's cache_getImp has already been patched by iOptimize.\n");
-} else {
- printf("cache_getImp appears to be changed, iOptimize did not optimize\n");
-}
+ if (instEqual(origCode_cache_getImp, 28, origFuncPtr)) {
+  applyPatch(newCode_cache_getImp, 27, origFuncPtr);
+ } else if (instEqual(newCode_cache_getImp, 27, origFuncPtr)) {
+  printf("libobjc's cache_getImp has already been patched by iOptimize.\n");
+ } else {
+  printf("cache_getImp appears to be changed, iOptimize did not optimize\n");
+ }
 
-/* objc_msgSendSuper2 patch */
-/* same as objc_msgSend patch, save mov instruction */
-origFuncPtr = dlsym(mainProgramHandle, "objc_msgSendSuper2");
-if (!origFuncPtr) {
- fprintf(stderr, "dlsym %s failed\n", dlerror());
- return;
-}
-instruction64 origCode_objc_msgSendSuper2[25] = {
- 0x004040A9,
- 0x100640F9,
- 0xEF0310AA,
- 0x0A0A40F9,
- 0x4BFD70D3,
- 0x4ABD4092,
- 0x2C000B0A,
- 0x4D110C8B,
- 0xB125FFA8,
- 0x3F0101EB,
- 0x61000054,
- 0x310210CA,
- 0x20021FD6,
- 0x690600B4,
- 0xBF010AEB,
- 0x22FFFF54,
- 0x4D512B8B,
- 0x4C110C8B,
- 0xB125FFA8,
- 0x3F0101EB,
- 0xE0FEFF54,
- 0x3F0100F1,
- 0xA0114CFA,
- 0x68FFFF54,
- 0x28000014
-}
-instruction64 newCode_objc_msgSendSuper2[25] = {
- 0x003C40A9,
- 0xEF0540F9,
- 0xEA0940F9,
- 0x4BFD70D3,
- 0x4ABD4092,
- 0x2C000B0A,
- 0x4D110C8B,
- 0xB125FFA8,
- 0x3F0101EB,
- 0x81000054,
- 0xF0030FAA,
- 0x310210CA,
- 0x20021FD6,
- 0x690600B4,
- 0xBF010AEB,
- 0x02FFFF54,
- 0x4D512B8B,
- 0x4C110C8B,
- 0xB125FFA8,
- 0x3F0101EB,
- 0xC0FEFF54,
- 0x3F0100F1,
- 0xA0114CFA,
- 0x68FFFF54,
- 0x28000014
-}
-if (instEqual(origCode_objc_msgSendSuper2, 25, origFuncPtr)) {
- applyPatch(newCode_objc_msgSendSuper2, 25, origFuncPtr);
-} else if (instEqual(newCode_objc_msgSendSuper2, 25, origFuncPtr)) {
- printf("libobjc's objc_msgSendSuper2 has already been patched by iOptimize.\n");
-} else {
- printf("objc_msgSendSuper2 appears to be changed, iOptimize did not optimize\n");
+ /* objc_msgSendSuper2 patch */
+ /* same as objc_msgSend patch, save mov instruction */
+ origFuncPtr = dlsym(mainProgramHandle, "objc_msgSendSuper2");
+ if (!origFuncPtr) {
+  fprintf(stderr, "dlsym %s failed\n", dlerror());
+  return;
+ }
+ instruction64 origCode_objc_msgSendSuper2[25] = {
+  0x004040A9,
+  0x100640F9,
+  0xEF0310AA,
+  0x0A0A40F9,
+  0x4BFD70D3,
+  0x4ABD4092,
+  0x2C000B0A,
+  0x4D110C8B,
+  0xB125FFA8,
+  0x3F0101EB,
+  0x61000054,
+  0x310210CA,
+  0x20021FD6,
+  0x690600B4,
+  0xBF010AEB,
+  0x22FFFF54,
+  0x4D512B8B,
+  0x4C110C8B,
+  0xB125FFA8,
+  0x3F0101EB,
+  0xE0FEFF54,
+  0x3F0100F1,
+  0xA0114CFA,
+  0x68FFFF54,
+  0x28000014
+ }
+ instruction64 newCode_objc_msgSendSuper2[25] = {
+  0x003C40A9,
+  0xEF0540F9,
+  0xEA0940F9,
+  0x4BFD70D3,
+  0x4ABD4092,
+  0x2C000B0A,
+  0x4D110C8B,
+  0xB125FFA8,
+  0x3F0101EB,
+  0x81000054,
+  0xF0030FAA,
+  0x310210CA,
+  0x20021FD6,
+  0x690600B4,
+  0xBF010AEB,
+  0x02FFFF54,
+  0x4D512B8B,
+  0x4C110C8B,
+  0xB125FFA8,
+  0x3F0101EB,
+  0xC0FEFF54,
+  0x3F0100F1,
+  0xA0114CFA,
+  0x68FFFF54,
+  0x28000014
+ }
+ if (instEqual(origCode_objc_msgSendSuper2, 25, origFuncPtr)) {
+  applyPatch(newCode_objc_msgSendSuper2, 25, origFuncPtr);
+ } else if (instEqual(newCode_objc_msgSendSuper2, 25, origFuncPtr)) {
+  printf("libobjc's objc_msgSendSuper2 has already been patched by iOptimize.\n");
+ } else {
+  printf("objc_msgSendSuper2 appears to be changed, iOptimize did not optimize\n");
+ }
 }
 
 #ifdef COMPILE_AS_CLI
