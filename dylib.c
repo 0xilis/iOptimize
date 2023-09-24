@@ -376,7 +376,6 @@ this saves us a branch in some scenarios
 
  /* cache_getImp patch */
  /* save a mov and branch */
- /* actually current patch does not save mov instr, but that is possible, and current patch does save a branch... */
  origFuncPtr = dlsym(mainProgramHandle, "cache_getImp");
  if (!origFuncPtr) {
   fprintf(stderr, "dlsym %s failed\n", dlerror());
@@ -422,24 +421,24 @@ this saves us a branch in some scenarios
   0x4D110C8B,
   0xB125FFA8,
   0x3F0101EB,
-  0xA1000054,
-  0xE00311AA,
-  0x400000B4,
-  0x000010CA,
+  0x81000054,
+  0xD10100B4,
+  0x200210CA,
   0xC0035FD6,
   0x690100B4,
   0xBF010AEB,
-  0xE2FEFF54,
+  0x02FFFF54,
   0x4D512B8B,
   0x4C110C8B,
   0xB125FFA8,
   0x3F0101EB,
-  0xA0FEFF54,
+  0xC0FEFF54,
   0x3F0100F1,
   0xA0114CFA,
   0x68FFFF54,
   0x000080D2,
-  0xC0035FD6
+  0xC0035FD6,
+  0xC0035FD6 /* this ret is not important and should never run, only here for padding */
  };
  if (instEqual(origCode_cache_getImp, 28, origFuncPtr)) {
   applyPatch(newCode_cache_getImp, 27, origFuncPtr);
