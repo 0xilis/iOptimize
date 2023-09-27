@@ -165,7 +165,7 @@ this saves us a branch in some scenarios
   0x03E4002F,
   0xC0035FD6
  };
- instruction64 newCode_objc_msgSend[42] = {
+ instruction64 newCode_objc_msgSend[41] = {
   0x1F0000F1,
   0x4D030054,
   0x0D0040F9,
@@ -189,29 +189,28 @@ this saves us a branch in some scenarios
   0xB125FFA8,
   0x3F0101EB,
   0xC0FEFF54,
-  0x3F0100F1,
+  0x291200B4,
   0xA0114CFA,
   0x68FFFF54,
   0x8E000014,
-  0x20010054,
-  0x0A084092,
+  0xA0070054,
   0x0BFC7793,
-  0x5F1D00F1,
+  0x0A0840F2,
   0x6C018A9A,
   0xCA010090,
   0x4A412F91,
   0x4F796CF8,
-  0xE1FFFF17,
-  0x010080D2,
-  0x00E4002F,
-  0x01E4002F,
-  0x02E4002F,
-  0x03E4002F,
+  0xE2FFFF17 /* End of patch */
+  0xC0035FD6,
+  0xC0035FD6,
+  0xC0035FD6,
+  0xC0035FD6,
+  0xC0035FD6,
   0xC0035FD6
  };
  if (instEqual(origCode_objc_msgSend, 42, origFuncPtr)) {
-  applyPatch(newCode_objc_msgSend, 42, origFuncPtr);
- } else if (instEqual(newCode_objc_msgSend, 42, origFuncPtr)) {
+  applyPatch(newCode_objc_msgSend, 41, origFuncPtr);
+ } else if (instEqual(newCode_objc_msgSend, 41, origFuncPtr)) {
   printf("libobjc's objc_msgSend has already been patched by iOptimize.\n");
  } else {
   printf("objc_msgSend appears to be changed, iOptimize did not optimize\n");
