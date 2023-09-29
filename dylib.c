@@ -515,6 +515,22 @@ this saves us a branch in some scenarios
  } else {
   printf("objc_msgSendSuper2 appears to be changed, iOptimize did not optimize\n");
  }
+ /*
+ patches that I already know are viable that I need to implement:
+
+ objc_getClass
+ objc_getClassName
+ objc_msgLookup
+ improved objc_msgSendSuper2 patch
+ objc_retainAutoreleaseReturnValue
+ lookUpImpOrForward
+ class_getInstanceVariable
+ lookUpImpOrNilTryCache
+ lookUpImpOrForwardTryCache
+ class_lookupMethod
+ cache_t::insert
+ cache_t::collectNolock
+*/
 }
 
 #ifdef COMPILE_AS_CLI
