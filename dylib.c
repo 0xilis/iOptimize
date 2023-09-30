@@ -22,7 +22,7 @@ clang -D COMPILE_AS_CLI dylib.c -o ioptimize
 #include <sys/mman.h>
 #include <unistd.h>
 
-typedef instruction64 long; /* an arm64 intruction takes up 32 bits */
+typedef instruction64 long long; /* an arm64 intruction takes up 64 bits */
 
 int instEqual(instruction64 *ins, unsigned int insCount, instruction64 *start) {
  instruction64 *ptrToInst = start;
